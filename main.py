@@ -1,13 +1,64 @@
 import requests
 from bs4 import BeautifulSoup
-from transformers import pipeline
-from nltk.tokenize import sent_tokenize
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+# from nltk.tokenize import sent_tokenize
+from datasets import load_dataset
+from torch.utils.data import DataLoader
 
 API_KEY = 'AIzaSyDwpTxBMH99xAMc7gcHG2jYH4arUiovbZU'
 CX = 'a6112534b06a64b0f'
 
+model = None
+tokenizer = None
+
+dataset = load_dataset("glue", "sst2")
+
+# Load model and tokenizer
 def initialize_sentiment_model():
-    return pipeline("sentiment-analysis", model = "distilbert-base-uncased-finetuned-sst-2-english", device = 0)
+    global model, tokenizer
+
+    if model is None or tokenizer is None:
+        model_name = "google/bigbird-roberta-base"
+        model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels = 2) # 2 labels for sentiment (positive/negative)
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    return model, tokenizer
+
+model, tokenizer = initialize_sentiment_model()
+
+def tokenize_function(examples):
+    return tokenizer(examples["sentence"], padding="max_length", truncation=True, max_length=512)
+
+tokenized_datasets = dataset.map(tokenize_function, batched=True)    
+
+# Training Dataset
+train_dataset = tokenized_datasets["train"]
+test_dataset = tokenized_datasets["test"]
+
+train_dataloader = DataLoader(train_dataset, batch_size=8)
+test_dataloader = DataLoader(test_dataset, batch_size=8)
+
+# Training arguments
+training_args = TrainingArguments(
+    output_dir="./results",          # Output directory
+    evaluation_strategy="epoch",     # Evaluation frequency
+    learning_rate=2e-5,              # Learning rate
+    per_device_train_batch_size=8,   # Batch size for training
+    per_device_eval_batch_size=8,    # Batch size for evaluation
+    num_train_epochs=3,              # Number of training epochs
+    weight_decay=0.01,               # Weight decay for regularization
+)
+
+# Trainer initialization
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=test_dataset,
+    tokenizer=tokenizer,
+)
+
+trainer.train()
 
 def search_google(query):
     search_url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={API_KEY}&cx={CX}"
@@ -35,12 +86,18 @@ def analyze_sentiment(sentiment_model, text):
     if not text:
         return "No text found to analyze."
 
-    chunk_size = 512  # Adjust based on model
-    text_chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    tokenized_text = inputs['input_ids']
+
+    chunk_size = 4096  # Adjust based on model
+    num_chunks = (len(tokenized_text[0]) // chunk_size) + 1
 
     sentiment_scores = []
-    for chunk in text_chunks:
-        results = sentiment_model(chunk)
+    
+    for i in range(num_chunks):
+        chunk = tokenized_text[0][i * chunk_size:(i + 1) * chunk_size]
+        chunk_text = tokenizer.decode(chunk, skip_special_tokens=True)
+        results = sentiment_model(chunk_text)
         sentiment_scores.extend(results)
 
     positive_score = sum(1 for result in sentiment_scores if result['label'] == 'POSITIVE')
