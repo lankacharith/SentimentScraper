@@ -1,68 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
-<<<<<<< HEAD
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
-# from nltk.tokenize import sent_tokenize
-from datasets import load_dataset
-from torch.utils.data import DataLoader
-
-API_KEY = 'AIzaSyDwpTxBMH99xAMc7gcHG2jYH4arUiovbZU'
-CX = 'a6112534b06a64b0f'
-=======
 from transformers import pipeline
->>>>>>> parent of 08a066e (topic analysis)
 
-model = None
-tokenizer = None
-
-dataset = load_dataset("glue", "sst2")
-
-# Load model and tokenizer
 def initialize_sentiment_model():
-    global model, tokenizer
-
-    if model is None or tokenizer is None:
-        model_name = "google/bigbird-roberta-base"
-        model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels = 2) # 2 labels for sentiment (positive/negative)
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-    return model, tokenizer
-
-model, tokenizer = initialize_sentiment_model()
-
-def tokenize_function(examples):
-    return tokenizer(examples["sentence"], padding="max_length", truncation=True, max_length=512)
-
-tokenized_datasets = dataset.map(tokenize_function, batched=True)    
-
-# Training Dataset
-train_dataset = tokenized_datasets["train"]
-test_dataset = tokenized_datasets["test"]
-
-train_dataloader = DataLoader(train_dataset, batch_size=8)
-test_dataloader = DataLoader(test_dataset, batch_size=8)
-
-# Training arguments
-training_args = TrainingArguments(
-    output_dir="./results",          # Output directory
-    evaluation_strategy="epoch",     # Evaluation frequency
-    learning_rate=2e-5,              # Learning rate
-    per_device_train_batch_size=8,   # Batch size for training
-    per_device_eval_batch_size=8,    # Batch size for evaluation
-    num_train_epochs=3,              # Number of training epochs
-    weight_decay=0.01,               # Weight decay for regularization
-)
-
-# Trainer initialization
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_dataset,
-    eval_dataset=test_dataset,
-    tokenizer=tokenizer,
-)
-
-trainer.train()
+    return pipeline("sentiment-analysis", model = "distilbert-base-uncased-finetuned-sst-2-english", device = 0)
 
 def extract_text_from_url(url):
     try:
