@@ -1,8 +1,12 @@
 from topic_analysis import analyze_topic
 from article_analysis import analyze_single_article
+from dotenv import load_dotenv
+import os
 
-API_KEY = 'AIzaSyDwpTxBMH99xAMc7gcHG2jYH4arUiovbZU'
-CX = 'a6112534b06a64b0f'
+load_dotenv()
+
+API_KEY = os.getenv("API_KEY")
+CX = os.getenv("CX")
 
 def main():
     print("\nChoose an option:")
