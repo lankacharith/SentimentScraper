@@ -61,7 +61,7 @@ def analyze_sentiment_percentage(sentiment_model, text):
     
     sentences = sent_tokenize(text)
 
-    sentiment_results = [sentiment_model(sentence)[0] for sentence in sentences]
+    sentiment_results = [sentiment_model(sentence[:512])[0] for sentence in sentences]  # Truncate sentences (model limitation 512 tokens)
 
     positive_count = sum(1 for result in sentiment_results if result['label'] == 'POSITIVE')
     negative_count = sum(1 for result in sentiment_results if result['label'] == 'NEGATIVE')
