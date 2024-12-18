@@ -35,14 +35,14 @@ def main():
         try:
             combined_positive, combined_negative = analyze_topic(query, API_KEY, CX)
             print("\n--- Topic Sentiment Analysis Results ---")
-            print(f"Overall Positive Sentiment: {combined_positive:.2f}%")
-            print(f"Overall Negative Sentiment: {combined_negative:.2f}%")
             if combined_positive > combined_negative:
                 print("Overall Sentiment: POSITIVE")
             elif combined_negative > combined_positive:
                 print("Overall Sentiment: NEGATIVE")
             else:
                 print("Overall Sentiment: NEUTRAL")
+            print(f"Overall Positive Sentiment: {combined_positive:.2f}%")
+            print(f"Overall Negative Sentiment: {combined_negative:.2f}%")
         except Exception as e:
             print(f"Error analyzing the topic: {e}")
 
